@@ -31,16 +31,14 @@ public class Injector {
                     +
                     "`@Component`, so the work stops.");
         }
-        Object fieldInstance;
         Class<?> fieldClazz = findClassImplementation.get(interfaceClazz);
         Object clazzImplementationInstance = createNewInstance(fieldClazz);
         Field[] declaredFields = fieldClazz.getDeclaredFields();
         for (Field field : declaredFields) {
             if (field.isAnnotationPresent(Inject.class)) {
-                fieldInstance = getInstance(field.getType());
                 try {
                     field.setAccessible(true);
-                    field.set(clazzImplementationInstance, fieldInstance);
+                    field.set(clazzImplementationInstance, getInstance(field.getType()));
                 } catch (IllegalAccessException e) {
                     throw new RuntimeException("Can`t initialize field value. "
                             +
@@ -49,9 +47,6 @@ public class Injector {
                             "Field: " + field.getName(), e);
                 }
             }
-        }
-        if (clazzImplementationInstance == null) {
-            clazzImplementationInstance = createNewInstance(fieldClazz);
         }
         return clazzImplementationInstance;
     }
