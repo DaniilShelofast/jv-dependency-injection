@@ -2,7 +2,6 @@ package mate.academy.lib;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -24,14 +23,17 @@ public class Injector {
 
     public Object getInstance(Class<?> interfaceClazz) {
         if (!findClassImplementation(interfaceClazz).isAnnotationPresent(Component.class)) {
-            throw new RuntimeException("Error");
+            throw new RuntimeException("error: class does not have "
+                    +
+                    "`@Component`, so the work stops.");
         }
         Object clazzImplementationInstance = null;
-        Class<?> fieldClazz = findFieldImplementation(interfaceClazz);
+        Object fieldInstance;
+        Class<?> fieldClazz = findClassImplementation(interfaceClazz);
         Field[] declaredFields = fieldClazz.getDeclaredFields();
         for (Field field : declaredFields) {
             if (field.isAnnotationPresent(Inject.class)) {
-                Object fieldInstance = getInstance(field.getType());
+                fieldInstance = getInstance(field.getType());
                 clazzImplementationInstance = createNewInstance(fieldClazz);
                 try {
                     field.setAccessible(true);
@@ -41,11 +43,10 @@ public class Injector {
                             +
                             "Class: " + fieldClazz.getName()
                             +
-                            "Field: " + field.getName());
+                            "Field: " + field.getName(), e);
                 }
             }
         }
-
         if (clazzImplementationInstance == null) {
             clazzImplementationInstance = createNewInstance(fieldClazz);
         }
@@ -72,20 +73,8 @@ public class Injector {
             Object instance = constructor.newInstance();
             instances.put(clazz, instance);
             return instance;
-        } catch (InstantiationException | InvocationTargetException
-                 | IllegalAccessException | NoSuchMethodException e) {
-            throw new RuntimeException("Can`t create a new instance of " + clazz.getName());
+        } catch (ReflectiveOperationException e) {
+            throw new RuntimeException("Can`t create a new instance of " + clazz.getName(), e);
         }
-    }
-
-    private Class<?> findFieldImplementation(Class<?> interfaceClazz) {
-        Map<Class<?>, Class<?>> map = new LinkedHashMap<>();
-        map.put(FileReaderService.class, FileReaderServiceImpl.class);
-        map.put(ProductParser.class, ProductParserImpl.class);
-        map.put(ProductService.class, ProductServiceImpl.class);
-        if (interfaceClazz.isInterface()) {
-            return map.get(interfaceClazz);
-        }
-        return interfaceClazz;
     }
 }
