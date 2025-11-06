@@ -5,6 +5,7 @@ import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
+
 import mate.academy.service.FileReaderService;
 import mate.academy.service.ProductParser;
 import mate.academy.service.ProductService;
@@ -22,19 +23,18 @@ public class Injector {
     }
 
     public Object getInstance(Class<?> interfaceClazz) {
-        if (!findClassImplementation(interfaceClazz).isAnnotationPresent(Component.class)) {
+        if (!findClassImplementation.get(interfaceClazz).isAnnotationPresent(Component.class)) {
             throw new RuntimeException("error: class does not have "
                     +
                     "`@Component`, so the work stops.");
         }
-        Object clazzImplementationInstance = null;
         Object fieldInstance;
-        Class<?> fieldClazz = findClassImplementation(interfaceClazz);
+        Class<?> fieldClazz = findClassImplementation.get(interfaceClazz);
+        Object clazzImplementationInstance = createNewInstance(fieldClazz);
         Field[] declaredFields = fieldClazz.getDeclaredFields();
         for (Field field : declaredFields) {
             if (field.isAnnotationPresent(Inject.class)) {
                 fieldInstance = getInstance(field.getType());
-                clazzImplementationInstance = createNewInstance(fieldClazz);
                 try {
                     field.setAccessible(true);
                     field.set(clazzImplementationInstance, fieldInstance);
@@ -53,16 +53,11 @@ public class Injector {
         return clazzImplementationInstance;
     }
 
-    private Class<?> findClassImplementation(Class<?> interfaceClazz) {
-        Map<Class<?>, Class<?>> map = new LinkedHashMap<>();
-        map.put(FileReaderService.class, FileReaderServiceImpl.class);
-        map.put(ProductParser.class, ProductParserImpl.class);
-        map.put(ProductService.class, ProductServiceImpl.class);
-        if (interfaceClazz.isInterface()) {
-            return map.get(interfaceClazz);
-        }
-        return interfaceClazz;
-    }
+    private static final Map<Class<?>, Class<?>> findClassImplementation = Map.of(
+            FileReaderService.class, FileReaderServiceImpl.class,
+            ProductParser.class, ProductParserImpl.class,
+            ProductService.class, ProductServiceImpl.class);
+
 
     private Object createNewInstance(Class<?> clazz) {
         if (instances.containsKey(clazz)) {
